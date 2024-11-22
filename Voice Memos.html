@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Memos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000000;
+        }
+        .container {
+            background-color: #000000;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        h1 {
+            color: #ffffff;
+            margin-bottom: 1rem;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        #recordButton {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #recordButton:hover {
+            background-color: #45a049;
+        }
+        #stopButton {
+            background-color: #f44336;
+            color: white;
+        }
+        #stopButton:hover {
+            background-color: #da190b;
+        }
+        #playButton {
+            background-color: #008CBA;
+            color: white;
+        }
+        #playButton:hover {
+            background-color: #007B9A;
+        }
+        #audioPlayer {
+            width: 100%;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Voice Memos</h1>
+        <div class="controls">
+            <button id="recordButton">Record</button>
+            <button id="stopButton" disabled>Stop</button>
+            <button id="playButton" disabled>Play</button>
+        </div>
+        <audio id="audioPlayer" controls></audio>
+    </div>
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        const recordButton = document.getElementById('recordButton');
+        const stopButton = document.getElementById('stopButton');
+        const playButton = document.getElementById('playButton');
+        const audioPlayer = document.getElementById('audioPlayer');
+
+        recordButton.addEventListener('click', startRecording);
+        stopButton.addEventListener('click', stopRecording);
+        playButton.addEventListener('click', playRecording);
+
+        async function startRecording() {
+            audioChunks = [];
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.addEventListener('dataavailable', event => {
+                    audioChunks.push(event.data);
+                });
+                mediaRecorder.start();
+                recordButton.disabled = true;
+                stopButton.disabled = false;
+                playButton.disabled = true;
+
+                // Handle iOS specific issues
+                if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        audioPlayer.src = URL.createObjectURL(audioBlob);
+                    };
+                }
+
+                // Ensure that the stream is stopped when recording is stopped
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    audioPlayer.src = URL.createObjectURL(audioBlob);
+                    recordButton.disabled = false;
+                    stopButton.disabled = true;
+                    playButton.disabled = false; 
+                };
+                
+            } catch (err) {
+                console.error('Error accessing microphone:', err);
+                alert('Error accessing microphone. Please ensure you have given permission.');
+                recordButton.disabled = false; // Re-enable record button on error
+                stopButton.disabled = true; 
+                playButton.disabled = true; 
+            }
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+        }
+
+        function playRecording() {
+            audioPlayer.play();
+        }
+    </script>
+</body>
+</html>
